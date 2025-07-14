@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AI Rewriter Admin Dashboard</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #f8f8f8; margin: 0; padding: 40px; }
+    table { border-collapse: collapse; width: 100%; background: #fff; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background: #0a2540; color: #fff; }
+    tr:nth-child(even) { background: #f2f2f2; }
+    h1 { color: #0a2540; }
+    input, select, button { margin: 0 4px; }
+  </style>
+</head>
+<body>
+  <h1>AI Rewriter Admin Dashboard</h1>
+  <input id="search" placeholder="Search email..." />
+  <button onclick="exportCSV()">Export CSV</button>
+  <table id="userTable">
+    <thead>
+      <tr>
+        <th>Email</th>
+        <th>Rewrite Count</th>
+        <th>Registration Date</th>
+        <th>Theme</th>
+        <th>Role</th>
+        <th>Pro</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <script>
+    let users = [];
+    function loadUsers() {
+      fetch('/api/admin/users')
+        .then(res => res.json())
+        .then(data => {
+          users = data;
+          renderTable();
+        });
+    }
+    function renderTable() {
+      const search = document.getElementById('search').value.toLowerCase();
+      const tbody = document.querySelector('#userTable tbody');
+      tbody.innerHTML = '';
+      users.filter(u => u.email.toLowerCase().includes(search)).forEach(user => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${user.email}</td>
+          <td>${user.rewriteCount ?? 0}</td>
+          <td>${user.created_at ? new Date(user.created_at).toLocaleString() : ''}</td>
+          <td>${user.theme || ''}</td>
+          <td>
+            <select onchange="updateUser(${user.id}, {role: this.value})">
+              <option value="user" ${user.role === 'user' ? 'selected' : ''}>user</option>
+              <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>admin</option>
+            </select>
+          </td>
+          <td>
+            <input type="checkbox" ${user.pro ? 'checked' : ''} onchange="updateUser(${user.id}, {pro: this.checked})" />
+          </td>
+          <td>
+            <button onclick="updateUser(${user.id}, {resetUsage: true})">Reset Usage</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    function updateUser(id, changes) {
+      fetch('/api/admin/user/' + id, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(changes)
+      }).then(() => loadUsers());
+    }
+    function exportCSV() {
+      window.location = '/api/admin/export';
+    }
+    document.getElementById('search').addEventListener('input', renderTable);
+    loadUsers();
+    window.updateUser = updateUser; // make available globally
+  </script>
+</body>
+</html>
