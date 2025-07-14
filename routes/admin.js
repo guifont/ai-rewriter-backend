@@ -5,10 +5,11 @@ import db from '../db.js';
 const router = express.Router();
 
 router.get('/admin', (req, res) => {
-  db.all('SELECT email, rewriteCount, id, created_at, theme FROM users ORDER BY id ASC', [], (err, rows) => {
-    if (err) {
-      return res.status(500).send('Database error');
-    }
+    db.all('SELECT email, rewriteCount, id, created_at, theme, role, pro FROM users ORDER BY id ASC', [], (err, rows) => {
+      if (err) {
+        console.error('Database error:', err); // <--- Add this line
+        return res.status(500).send('Database error');
+      }
 
     // Build HTML table
     let html = `
