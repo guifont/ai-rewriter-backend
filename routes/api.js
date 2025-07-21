@@ -28,6 +28,22 @@ router.post('/rewrite', requireAuth, async (req, res) => {
       }
     );
 
+    // Fetch user info
+    const user = await db.get('SELECT * FROM users WHERE id = ?', [userId]);
+
+    if (!user.pro) {
+      // Count rewrites this month
+      const { count } = await db.get(
+        `SELECT COUNT(*) as count FROM rewrites WHERE user_id = ? AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')`,
+        [userId]
+      );
+      const MONTHLY_CAP = 50; // Set your free user cap here
+
+      if (count >= MONTHLY_CAP) {
+        return res.status(403).json({ error: 'Free plan limit reached. Upgrade to Pro for unlimited rewrites.' });
+      }
+    }
+
     // 2. Call OpenAI API
     const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -88,6 +104,16 @@ router.post('/detect-language', requireAuth, async (req, res) => {
 
     const data = await openaiRes.json();
     const language = data.choices[0].message.content.trim().toLowerCase();
+
+    db.run(
+      'INSERT INTO rewrites (user_id) VALUES (?)',
+      [userId],
+      function (err) {
+        if (err) {
+          console.error('Failed to log rewrite event:', err);
+        }
+      }
+    );
 
     res.json({ language });
   } catch (err) {

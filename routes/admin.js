@@ -1,6 +1,7 @@
 // routes/admin.js
 import express from 'express';
 import db from '../db.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -93,6 +94,71 @@ router.get('/api/admin/users', (req, res) => {
       res.attachment('users.csv');
       res.send(csv);
     });
+  });
+
+  router.get('/api/admin/stats', requireAuth, async (req, res) => {
+    try {
+      // Only allow admins
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+  
+      const users = await new Promise((resolve, reject) => {
+        db.all('SELECT * FROM users', [], (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        });
+      });
+  
+      // Helper to get start of week/month
+      function getStartOf(period) {
+        const now = new Date();
+        if (period === 'week') {
+          const day = now.getDay();
+          now.setDate(now.getDate() - day);
+          now.setHours(0,0,0,0);
+        } else if (period === 'month') {
+          now.setDate(1);
+          now.setHours(0,0,0,0);
+        }
+        return now.toISOString();
+      }
+  
+      const weekStart = getStartOf('week');
+      const monthStart = getStartOf('month');
+  
+      // For each user, get rewrite stats
+      const stats = await Promise.all(users.map(async user => {
+        const rewritesWeek = await new Promise((resolve, reject) => {
+          db.get(
+            'SELECT COUNT(*) as count FROM rewrites WHERE user_id = ? AND created_at >= ?',
+            [user.id, weekStart],
+            (err, row) => err ? reject(err) : resolve(row.count)
+          );
+        });
+        const rewritesMonth = await new Promise((resolve, reject) => {
+          db.get(
+            'SELECT COUNT(*) as count FROM rewrites WHERE user_id = ? AND created_at >= ?',
+            [user.id, monthStart],
+            (err, row) => err ? reject(err) : resolve(row.count)
+          );
+        });
+        return {
+          email: user.email,
+          created_at: user.created_at,
+          rewriteCount: user.rewriteCount,
+          pro: user.pro,
+          role: user.role,
+          rewritesWeek,
+          rewritesMonth,
+        };
+      }));
+  
+      res.json(stats);
+    } catch (err) {
+      console.error('Admin stats error:', err);
+      res.status(500).json({ error: 'Server error' });
+    }
   });
 
 export default router;
