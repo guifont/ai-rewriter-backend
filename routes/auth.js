@@ -16,8 +16,14 @@ router.post('/register', async (req, res) => {
   const hash = await bcrypt.hash(password, 10);
   const user = await createUser(email, hash);
 
-  const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-  res.json({ token, user: { id: user.id, email: user.email } });
+  const fullUser = await findUserByEmail(email);
+
+  const token = jwt.sign(
+    { userId: fullUser.id, role: fullUser.role, email: fullUser.email },
+    process.env.JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+  res.json({ token, user: { id: fullUser.id, email: fullUser.email, role: fullUser.role } });
 });
 
 router.post('/login', async (req, res) => {
@@ -28,8 +34,12 @@ router.post('/login', async (req, res) => {
   const valid = await bcrypt.compare(password, user.password_hash);
   if (!valid) return res.status(400).json({ error: 'Invalid credentials' });
 
-  const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-  res.json({ token, user: { id: user.id, email: user.email } });
+  const token = jwt.sign(
+    { userId: user.id, role: user.role, email: user.email },
+    process.env.JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+  res.json({ token, user: { id: user.id, email: user.email, role: user.role } });
 });
 
 export default router;
