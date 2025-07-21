@@ -65,6 +65,16 @@ router.post('/rewrite', requireAuth, async (req, res) => {
     const data = await openaiRes.json();
     const rewrittenText = data.choices[0].message.content.trim();
 
+    db.run(
+      'INSERT INTO rewrites (user_id) VALUES (?)',
+      [userId],
+      function (err) {
+        if (err) {
+          console.error('Failed to log rewrite event:', err);
+        }
+      }
+    );
+
     // 3. Return the rewritten text
     res.json({ rewrittenText });
 
@@ -104,16 +114,6 @@ router.post('/detect-language', requireAuth, async (req, res) => {
 
     const data = await openaiRes.json();
     const language = data.choices[0].message.content.trim().toLowerCase();
-
-    db.run(
-      'INSERT INTO rewrites (user_id) VALUES (?)',
-      [userId],
-      function (err) {
-        if (err) {
-          console.error('Failed to log rewrite event:', err);
-        }
-      }
-    );
 
     res.json({ language });
   } catch (err) {
