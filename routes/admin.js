@@ -2,8 +2,26 @@
 import express from 'express';
 import db from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
+import dotenv from 'dotenv';
 
 const router = express.Router();
+
+dotenv.config();
+
+router.post('/api/promote', async (req, res) => {
+  const secret = req.headers['x-admin-secret'];
+  if (!secret || secret !== process.env.ADMIN_SECRET) {
+    return res.status(403).json({ error: 'Forbidden: Invalid secret' });
+  }
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email is required' });
+
+  db.run('UPDATE users SET role = "admin" WHERE email = ?', [email], function(err) {
+    if (err) return res.status(500).json({ error: 'Update failed' });
+    if (this.changes === 0) return res.status(404).json({ error: 'User not found' });
+    res.json({ success: true });
+  });
+});
 
 router.get('/admin', (req, res) => {
     db.all('SELECT email, rewriteCount, id, created_at, theme, role, pro FROM users ORDER BY id ASC', [], (err, rows) => {
