@@ -65,12 +65,15 @@ router.post('/rewrite', requireAuth, async (req, res) => {
     const data = await openaiRes.json();
     const rewrittenText = data.choices[0].message.content.trim();
 
+    console.log('Logging rewrite for userId:', userId);
     db.run(
       'INSERT INTO rewrites (user_id) VALUES (?)',
       [userId],
       function (err) {
         if (err) {
           console.error('Failed to log rewrite event:', err);
+        } else {
+          console.log('Rewrite logged in DB for userId:', userId);
         }
       }
     );
