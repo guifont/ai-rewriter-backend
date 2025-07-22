@@ -9,7 +9,8 @@ const router = express.Router();
 
 router.post('/rewrite', requireAuth, async (req, res) => {
   try {
-    const userId = req.user.id; // Set by requireAuth middleware
+    console.log('JWT payload:', req.user);
+    const userId = req.user.userId; // Set by requireAuth middleware
     const { prompt } = req.body;
 
     if (!prompt) {
