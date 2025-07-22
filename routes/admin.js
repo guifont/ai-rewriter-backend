@@ -179,36 +179,40 @@ router.get('/api/admin/users', (req, res) => {
       console.log('All rewrites in database:', allRewrites);
       // For each user, get rewrite stats
       const stats = await Promise.all(users.map(async user => {
-        const rewritesWeek = await new Promise((resolve, reject) => {
-          console.log('Checking rewrites for user:', user.id, 'weekStart:', weekStart);
-          const sql = 'SELECT COUNT(*) as count FROM rewrites WHERE user_id = ? AND created_at >= ?';
-          console.log('Running SQL:', sql, 'with params:', [user.id, weekStart]);
-          db.get(sql, [user.id, weekStart], (err, row) => {
-            if (err) {
-              console.error('Week query error for user', user.id, ':', err);
-              reject(err);
-            } else {
-              console.log('Week query result for user', user.id, ':', row.count);
-              resolve(row.count);
-            }
-          });
+      const rewritesWeek = await new Promise((resolve, reject) => {
+        console.log('Checking rewrites for user:', user.id, 'weekStart:', weekStart);
+        const sql = `SELECT COUNT(*) as count FROM rewrites 
+                      WHERE user_id = ? 
+                      AND datetime(created_at) >= datetime(?)`;
+        console.log('Running SQL:', sql, 'with params:', [user.id, weekStart]);
+        db.get(sql, [user.id, weekStart], (err, row) => {
+          if (err) {
+            console.error('Week query error for user', user.id, ':', err);
+            reject(err);
+          } else {
+            console.log('Week query result for user', user.id, ':', row.count);
+            resolve(row.count);
+          }
         });
+      });
         
-        const rewritesMonth = await new Promise((resolve, reject) => {
-          console.log('Checking rewrites for user:', user.id, 'monthStart:', monthStart);
-          const sql = 'SELECT COUNT(*) as count FROM rewrites WHERE user_id = ? AND created_at >= ?';
-          console.log('Running SQL:', sql, 'with params:', [user.id, monthStart]);
-          db.get(sql, [user.id, monthStart], (err, row) => {
-            if (err) {
-              console.error('Month query error for user', user.id, ':', err);
-              reject(err);
-            } else {
-              console.log('Month query result for user', user.id, ':', row.count);
-              resolve(row.count);
-            }
-          });
+      const rewritesMonth = await new Promise((resolve, reject) => {
+        console.log('Checking rewrites for user:', user.id, 'monthStart:', monthStart);
+        const sql = `SELECT COUNT(*) as count FROM rewrites 
+                     WHERE user_id = ? 
+                     AND datetime(created_at) >= datetime(?)`;
+        console.log('Running SQL:', sql, 'with params:', [user.id, monthStart]);
+        db.get(sql, [user.id, monthStart], (err, row) => {
+          if (err) {
+            console.error('Month query error for user', user.id, ':', err);
+            reject(err);
+          } else {
+            console.log('Month query result for user', user.id, ':', row.count);
+            resolve(row.count);
+          }
         });
-        
+      });
+
         console.log('Final stats for user', user.id, ':', {
           email: user.email,
           rewriteCount: user.rewriteCount,
