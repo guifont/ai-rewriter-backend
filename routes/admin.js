@@ -8,6 +8,29 @@ const router = express.Router();
 
 dotenv.config();
 
+// TEMPORARY: Debug endpoint to see what's in the database
+router.get('/api/debug', async (req, res) => {
+  try {
+    const users = await new Promise((resolve, reject) => {
+      db.all('SELECT * FROM users', [], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+    
+    const rewrites = await new Promise((resolve, reject) => {
+      db.all('SELECT * FROM rewrites', [], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+    
+    res.json({ users, rewrites });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post('/api/promote', async (req, res) => {
   const secret = req.headers['x-admin-secret'];
   if (!secret || secret !== process.env.ADMIN_SECRET) {
@@ -144,17 +167,19 @@ router.get('/api/admin/users', (req, res) => {
   
       const weekStart = getStartOf('week');
       const monthStart = getStartOf('month');
-  
       // For each user, get rewrite stats
       const stats = await Promise.all(users.map(async user => {
         const rewritesWeek = await new Promise((resolve, reject) => {
+        console.log('Checking rewrites for user:', user.id, 'weekStart:', weekStart);
           db.get(
             'SELECT COUNT(*) as count FROM rewrites WHERE user_id = ? AND created_at >= ?',
             [user.id, weekStart],
             (err, row) => err ? reject(err) : resolve(row.count)
           );
         });
+    
         const rewritesMonth = await new Promise((resolve, reject) => {
+        console.log('Checking rewrites for user:', user.id, 'monthStart:', monthStart);
           db.get(
             'SELECT COUNT(*) as count FROM rewrites WHERE user_id = ? AND created_at >= ?',
             [user.id, monthStart],
@@ -178,5 +203,28 @@ router.get('/api/admin/users', (req, res) => {
       res.status(500).json({ error: 'Server error' });
     }
   });
+
+// TEMPORARY: Debug endpoint to see what's in the database
+router.get('/api/debug', async (req, res) => {
+  try {
+    const users = await new Promise((resolve, reject) => {
+      db.all('SELECT * FROM users', [], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+    
+    const rewrites = await new Promise((resolve, reject) => {
+      db.all('SELECT * FROM rewrites', [], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+    
+    res.json({ users, rewrites });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 export default router;
