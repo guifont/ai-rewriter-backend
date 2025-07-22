@@ -9,7 +9,6 @@ const router = express.Router();
 
 router.post('/rewrite', requireAuth, async (req, res) => {
   try {
-    console.log('JWT payload:', req.user);
     const userId = req.user.userId; // Set by requireAuth middleware
     const { prompt } = req.body;
 
@@ -67,20 +66,24 @@ router.post('/rewrite', requireAuth, async (req, res) => {
     const rewrittenText = data.choices[0].message.content.trim();
 
     console.log('Logging rewrite for userId:', userId);
-    db.run(
-      'INSERT INTO rewrites (user_id) VALUES (?)',
-      [userId],
-      function (err) {
-        if (err) {
-          console.error('Failed to log rewrite event:', err);
-        } else {
-          console.log('Rewrite logged in DB for userId:', userId);
+    await new Promise((resolve, reject) => {
+      db.run(
+        'INSERT INTO rewrites (user_id) VALUES (?)',
+        [userId],
+        function (err) {
+          if (err) {
+            console.error('Failed to log rewrite event:', err);
+            reject(err);
+          } else {
+            console.log('Rewrite logged in DB for userId:', userId);
+            resolve();
+          }
         }
-      }
-    );
+      );
+    });
 
-    // 3. Return the rewritten text
-    res.json({ rewrittenText });
+// 3. Return the rewritten text
+res.json({ rewrittenText });
 
   } catch (err) {
     console.error('Rewrite error:', err);
