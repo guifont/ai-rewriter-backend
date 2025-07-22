@@ -171,21 +171,43 @@ router.get('/api/admin/users', (req, res) => {
       // For each user, get rewrite stats
       const stats = await Promise.all(users.map(async user => {
         const rewritesWeek = await new Promise((resolve, reject) => {
-        console.log('Checking rewrites for user:', user.id, 'weekStart:', weekStart);
+          console.log('Checking rewrites for user:', user.id, 'weekStart:', weekStart);
           db.get(
             'SELECT COUNT(*) as count FROM rewrites WHERE user_id = ? AND created_at >= ?',
             [user.id, weekStart],
-            (err, row) => err ? reject(err) : resolve(row.count)
+            (err, row) => {
+              if (err) {
+                console.error('Week query error for user', user.id, ':', err);
+                reject(err);
+              } else {
+                console.log('Week query result for user', user.id, ':', row.count);
+                resolve(row.count);
+              }
+            }
           );
         });
-    
+        
         const rewritesMonth = await new Promise((resolve, reject) => {
-        console.log('Checking rewrites for user:', user.id, 'monthStart:', monthStart);
+          console.log('Checking rewrites for user:', user.id, 'monthStart:', monthStart);
           db.get(
             'SELECT COUNT(*) as count FROM rewrites WHERE user_id = ? AND created_at >= ?',
             [user.id, monthStart],
-            (err, row) => err ? reject(err) : resolve(row.count)
+            (err, row) => {
+              if (err) {
+                console.error('Month query error for user', user.id, ':', err);
+                reject(err);
+              } else {
+                console.log('Month query result for user', user.id, ':', row.count);
+                resolve(row.count);
+              }
+            }
           );
+        });
+        console.log('Final stats for user', user.id, ':', {
+          email: user.email,
+          rewriteCount: user.rewriteCount,
+          rewritesWeek,
+          rewritesMonth
         });
         return {
           email: user.email,
