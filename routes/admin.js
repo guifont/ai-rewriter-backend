@@ -167,6 +167,7 @@ router.get('/api/admin/users', (req, res) => {
   
       const weekStart = getStartOf('week');
       const monthStart = getStartOf('month');
+      console.log('Date calculations - weekStart:', weekStart, 'monthStart:', monthStart);
       // For each user, get rewrite stats
       const stats = await Promise.all(users.map(async user => {
         const rewritesWeek = await new Promise((resolve, reject) => {
